@@ -35,7 +35,7 @@ void *sendtext_message(void *arg)
           perror("send");
           break;
       }
-    //////voice change 判定 今の所
+    //////voice change 判定 今の所segfault出る
       if (strncmp(buf, "voicechange", 11) == 0 && n > 12) { // コマンドの正確な比較と範囲チェック
           pthread_mutex_lock(&npitch_mutex);
           npitch = buf[12] - '0'; // '0' を引くことで数値に変換
@@ -80,7 +80,7 @@ void *send_message(void *arg)
   //
   int s = client->s_audio;
   FILE* listening_fd = client->listening_fd;
-  char buf[512];
+  char buf[2048];
   //char buf[10];
   while (1)
   {
