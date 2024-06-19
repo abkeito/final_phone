@@ -34,17 +34,6 @@ short data[MAX_CLIENTS][BUFFER_SIZE];
 int ns[MAX_CLIENTS];
 /*ここから handle clients
 基本は受け取ったテクストを処理して送ればよい*/
-void *handle_textclients(void *arg)
-{
-  int s = (int)(intptr_t)arg;
-  char buf[TEXT_SIZE];
-  int recv_size;
-  while ((recv_size = recv(s, buf, sizeof(buf) - 1, 0)) > 0) {
-      buf[recv_size] = '\0';
-      broadcast_message(buf, recv_size, s);
-  }
-}
-
 void broadcast_message(const char *message, int len, int sender_socket)
 {
   pthread_mutex_lock(&clients_mutex);
@@ -59,6 +48,16 @@ void broadcast_message(const char *message, int len, int sender_socket)
     }
   }
   pthread_mutex_unlock(&clients_mutex);
+}
+void *handle_textclients(void *arg)
+{
+  int s = (int)(intptr_t)arg;
+  char buf[TEXT_SIZE];
+  int recv_size;
+  while ((recv_size = recv(s, buf, sizeof(buf) - 1, 0)) > 0) {
+      buf[recv_size] = '\0';
+      broadcast_message(buf, recv_size, s);
+  }
 }
 /*ここまで handle clients*/
 
@@ -99,9 +98,7 @@ void *handle_client(void *arg)
       break;
     }
     my_push_back(buf, s, n);
-    // broadcast_message(buf, n, s);
   }
-  //printf("client finished");
   close(s);
 
 
@@ -257,7 +254,7 @@ void server_mode(int port)
     ns[num_clients] = 0;
     pthread_mutex_unlock(&clients_mutex);
     /*ここからテキストのやり取りをするソケット*/
-    int s = accept(ss, (struct sockaddr *)&client_addr, &len);
+    s = accept(ss, (struct sockaddr *)&client_addr, &len);
     if (s == -1)
     {
       die("accept text socket");
