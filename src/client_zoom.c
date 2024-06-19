@@ -12,6 +12,8 @@
 #include <stdint.h>
 
 #define TEXT_SIZE 256
+pthread_mutex_t npitch_mutex = PTHREAD_MUTEX_INITIALIZER; // npitchのロック
+int npitch;
 
 typedef struct {
     int s_audio;
@@ -22,6 +24,7 @@ typedef struct {
 
 void *sendtext_message(void *arg)
 { //
+
   client_info_t* client = (client_info_t*)arg; 
   if (!client) pthread_exit(NULL);  // ポインタのNULLチェック
   int s = client->s_text;
@@ -32,6 +35,13 @@ void *sendtext_message(void *arg)
           perror("send");
           break;
       }
+    //////voice change 判定 今の所
+      if (strncmp(buf, "voicechange", 11) == 0 && n > 12) { // コマンドの正確な比較と範囲チェック
+          pthread_mutex_lock(&npitch_mutex);
+          npitch = buf[12] - '0'; // '0' を引くことで数値に変換
+          printf("voice changed -> %d\n", npitch);
+          pthread_mutex_unlock(&npitch_mutex);
+      }    
   }
     close(s);
     pthread_exit(NULL);
@@ -68,10 +78,9 @@ void *send_message(void *arg)
 { //
   client_info_t* client = (client_info_t*)arg; 
   //
-  int npitch = 0;
   int s = client->s_audio;
   FILE* listening_fd = client->listening_fd;
-  char buf[1024];
+  char buf[512];
   //char buf[10];
   while (1)
   {
@@ -159,6 +168,7 @@ void client_mode(int port, const char *ipaddr)
   {
     die("connect");
   }
+  npitch = 0;
   /*つかちゃん*/
   FILE *listening_fd = popen("rec -r 44100 -b 16 -c 1 -e signed-integer -t raw - 2>/dev/null", "r");
   FILE *speaking_fd = popen("play -r 44100 -b 16 -c 1 -e signed-integer -t raw - 2>/dev/null", "w");
