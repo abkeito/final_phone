@@ -186,9 +186,9 @@ void client_mode(int port, const char *ipaddr)
   client_info->speaking_fd = speaking_fd;
   /**/
   log_message(LOG_FILE_CLIENT, "[client] connected to %s:%d", ipaddr, port);
-
-  messages(client_info);
+  
   start_call(client_info);
+  messages(client_info);
 
   close(s_audio);
   close(s_text);
