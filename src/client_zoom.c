@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 void *send_message(void *arg)
-{ 
+{ int npitch = 3;
   int s = (int)(intptr_t)arg;
   char buf[2048];
   while (1)
@@ -27,7 +27,7 @@ void *send_message(void *arg)
       break;
     }
     /////
-    pitchchange(sizeof(buf), -6, buf);
+    pitchchange(sizeof(buf), npitch, buf);
     /////
     if (send(s, buf, n, 0) == -1)
     {
