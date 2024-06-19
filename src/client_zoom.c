@@ -12,9 +12,10 @@
 #include <stdint.h>
 
 void *send_message(void *arg)
-{ int npitch = 3;
+{ int npitch = -2;
   int s = (int)(intptr_t)arg;
-  char buf[2048];
+  char buf[1024];
+  //char buf[10];
   while (1)
   {
     int n = read(0, buf, sizeof(buf));
@@ -27,7 +28,9 @@ void *send_message(void *arg)
       break;
     }
     /////
-    pitchchange(sizeof(buf), npitch, buf);
+    if(npitch != 0){
+      pitchchange(sizeof(buf), npitch, buf);
+    }
     /////
     if (send(s, buf, n, 0) == -1)
     {
