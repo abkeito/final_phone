@@ -138,9 +138,6 @@ void start_call(client_info_t* client_info)
   pthread_create(&send_thread, NULL, send_message, (void *)client_info);
   pthread_t receive_thread;
   pthread_create(&receive_thread, NULL, receive_message, (void *)client_info);
-  while(1){
-    sleep(1);
-  }
 }
 
 void client_mode(int port, const char *ipaddr)
@@ -189,7 +186,9 @@ void client_mode(int port, const char *ipaddr)
   
   start_call(client_info);
   messages(client_info);
-
+  while(1){
+    sleep(1);
+  }
   close(s_audio);
   close(s_text);
 }
