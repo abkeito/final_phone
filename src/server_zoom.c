@@ -13,7 +13,10 @@
 
 #define MAX_CLIENTS 5
 #define BUFFER_SIZE 81920 // バッファサイズを増やす
+#define TEXT_SIZE 256
 //#define BUFFER_SIZE 163840 // バッファサイズを増やす
+#define TEXT_PREFIX "TEXT:"
+#define COMMAND_PREFIX "Command:"
 
 typedef struct
 {
@@ -22,27 +25,42 @@ typedef struct
 } Client;
 
 Client clients[MAX_CLIENTS];
+Client textclients[MAX_CLIENTS];
+
 int num_clients = 0;
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 // 二次元配列とn
 short data[MAX_CLIENTS][BUFFER_SIZE];
 int ns[MAX_CLIENTS];
+/*ここから handle clients
+基本は受け取ったテクストを処理して送ればよい*/
+void *handle_textclients(void *arg)
+{
+  int s = (int)(intptr_t)arg;
+  char buf[TEXT_SIZE];
+  int recv_size;
+  while ((recv_size = recv(s, buf, sizeof(buf) - 1, 0)) > 0) {
+      buf[recv_size] = '\0';
+      broadcast_message(buf, recv_size, s);
+  }
+}
 
 void broadcast_message(const char *message, int len, int sender_socket)
 {
   pthread_mutex_lock(&clients_mutex);
   for (int i = 0; i < num_clients; i++)
   {
-    if (clients[i].socket != sender_socket)
+    if (textclients[i].socket != sender_socket)
     {
-      if (send(clients[i].socket, message, len, 0) == -1)
+      if (send(textclients[i].socket, message, len, 0) == -1)
       {
-        perror("send");
+        perror("send text");
       }
     }
   }
   pthread_mutex_unlock(&clients_mutex);
 }
+/*ここまで handle clients*/
 
 void *my_push_back(short* buf, int s, int n){
   int client_i = 0;
@@ -237,6 +255,17 @@ void server_mode(int port)
     clients[num_clients].socket = s;
     pthread_create(&clients[num_clients].thread, NULL, handle_client, (void *)(intptr_t)s);
     ns[num_clients] = 0;
+    pthread_mutex_unlock(&clients_mutex);
+    /*ここからテキストのやり取りをするソケット*/
+    int s = accept(ss, (struct sockaddr *)&client_addr, &len);
+    if (s == -1)
+    {
+      die("accept text socket");
+    }
+    pthread_mutex_lock(&clients_mutex);
+    textclients[num_clients].socket = s;
+    pthread_create(&textclients[num_clients].thread, NULL, handle_textclients, (void *)(intptr_t)s);
+    /*ここまでテキストのやり取りをするソケット*/
     num_clients++;
     printf("client %d has joined\n", num_clients);
     pthread_mutex_unlock(&clients_mutex);
