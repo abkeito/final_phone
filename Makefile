@@ -1,13 +1,13 @@
 CC = gcc 
 CFLAGS = -fdiagnostics-color=always -Wall -Iinclude
-LDLIBS = -lm
+LDLIBS = -lm -lssl -lcrypto
 
 SRCDIR = src
 LIBDIR = lib
 BINDIR = bin
 INCDIR = include
 
-COMMON_SOURCES = $(SRCDIR)/helper.c $(SRCDIR)/phone.c $(SRCDIR)/fft.c
+COMMON_SOURCES = $(SRCDIR)/helper.c $(SRCDIR)/phone.c $(SRCDIR)/fft.c $(SRCDIR)/crypto.c
 COMMON_OBJECTS = $(COMMON_SOURCES:$(SRCDIR)/%.c=$(LIBDIR)/%.o)
 
 ZOOM_SOURCES = $(SRCDIR)/client_zoom.c $(SRCDIR)/server_zoom.c
