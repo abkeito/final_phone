@@ -1,6 +1,7 @@
 #include "network.h"
 #include "helper.h"
 #include "fft.h"
+#include "crypto.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,15 +62,18 @@ void broadcast_message(const char *message, int len, int sender_socket)
   }
   pthread_mutex_unlock(&clients_mutex);
 }
+
 void *handle_textclients(void *arg)
 {
   int s = (int)(intptr_t)arg;
   char buf[TEXT_SIZE];
   int recv_size;
+  unsigned char plaintext[1024];
   while ((recv_size = recv(s, buf, sizeof(buf) - 1, 0)) > 0) {
-      buf[recv_size] = '\0';
-      
-      broadcast_message(buf, recv_size, s);
+      int plaintext_len = mydecrypt((unsigned char *)buf, recv_size, plaintext);
+      plaintext[plaintext_len] = '\0';
+      // buf[recv_size] = '\0';
+      broadcast_message((char*)plaintext, plaintext_len, s);
   }
 }
 /*ここまで handle clients*/

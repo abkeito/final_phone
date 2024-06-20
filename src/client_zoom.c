@@ -1,4 +1,5 @@
 #include "network.h"
+#include "crypto.h"
 #include "helper.h"
 #include "fft.h"
 #include <pthread.h>
@@ -24,14 +25,15 @@ typedef struct {
 
 void *sendtext_message(void *arg)
 { //
-
   client_info_t* client = (client_info_t*)arg; 
   if (!client) pthread_exit(NULL);  // ポインタのNULLチェック
   int s = client->s_text;
   char buf[TEXT_SIZE];
   int n;
+  unsigned char ciphertext[1024];
   while ((n = read(0, buf, sizeof(buf))) > 0) {
-      if (send(s, buf, n, 0) == -1) {
+      int ciphertext_len = myencrypt((unsigned char *)buf, n, ciphertext);
+      if (send(s, ciphertext, ciphertext_len, 0) == -1) {
           perror("send");
           break;
       }
@@ -41,7 +43,7 @@ void *sendtext_message(void *arg)
           npitch = buf[12] - '0'; // '0' を引くことで数値に変換
           printf("voice changed -> %d\n", npitch);
           pthread_mutex_unlock(&npitch_mutex);
-      }    
+      }
   }
     close(s);
     pthread_exit(NULL);
@@ -56,7 +58,9 @@ void *receivetext_message(void *arg)
   int s = client->s_text;
   char buf[TEXT_SIZE];
   int recv_size;
+  // unsigned char plaintext[1024];
   while ((recv_size = recv(s, buf, sizeof(buf), 0)) > 0) {
+      // int plaintext_len = decrypt((unsigned char *)buf, recv_size, plaintext);
       if(write(1, buf, recv_size) == -1){
         perror("write");
         exit(1);
