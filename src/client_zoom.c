@@ -80,11 +80,11 @@ void *send_message(void *arg)
   //
   int s = client->s_audio;
   FILE* listening_fd = client->listening_fd;
-  char buf[2048];
+  short buf[1024];
   //char buf[10];
   while (1)
-  {
-    int n = fread(buf,  1, sizeof(buf), listening_fd);
+  { 
+    int n = fread(buf,  sizeof(short), sizeof(buf) / sizeof(short), listening_fd);
     if (n == -1)
     {
       die("read");
@@ -93,12 +93,13 @@ void *send_message(void *arg)
     {
       break;
     }
-    /////
+    /////voice change///////
     if(npitch != 0){
-      pitchchange(sizeof(buf), npitch, buf);
+      //npitch = 0;
+      pitchchange(n, npitch, buf);
     }
-    /////
-    if (send(s, buf, n, 0) == -1)
+    /////voice change///////
+    if (send(s, buf, n*sizeof(short), 0) == -1)
     {
       die("send");
     }
