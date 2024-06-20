@@ -12,8 +12,11 @@
 #include <stdint.h>
 
 #define MAX_CLIENTS 5
-#define BUFFER_SIZE 81920 // バッファサイズを増やす
+#define BUFFER_SIZE 8192 // バッファサイズを増やす
+#define TEXT_SIZE 256
 //#define BUFFER_SIZE 163840 // バッファサイズを増やす
+#define TEXT_PREFIX "TEXT:"
+#define COMMAND_PREFIX "Command:"
 
 typedef struct
 {
@@ -22,27 +25,54 @@ typedef struct
 } Client;
 
 Client clients[MAX_CLIENTS];
+Client textclients[MAX_CLIENTS];
+
 int num_clients = 0;
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 // 二次元配列とn
 short data[MAX_CLIENTS][BUFFER_SIZE];
 int ns[MAX_CLIENTS];
-
+/*ここから handle clients
+基本は受け取ったテクストを処理して送ればよい*/
 void broadcast_message(const char *message, int len, int sender_socket)
 {
   pthread_mutex_lock(&clients_mutex);
+  //working on it
+  int sender_i;
+  char sender_char[256]; // 数字と '\0' のためのバッファ
+
+  for (int i = 0; i < num_clients; i++) {
+      if (textclients[i].socket == sender_socket) {
+          sender_i = i + 1;
+          snprintf(sender_char, sizeof(sender_char), "%d", sender_i);
+          strcat(sender_char, "->");
+          break;
+      }
+  }
   for (int i = 0; i < num_clients; i++)
   {
-    if (clients[i].socket != sender_socket)
+    if (textclients[i].socket != sender_socket)
     {
-      if (send(clients[i].socket, message, len, 0) == -1)
+      if (send(textclients[i].socket, strcat(sender_char,message), len+3, 0) == -1)
       {
-        perror("send");
+        perror("send text");
       }
     }
   }
   pthread_mutex_unlock(&clients_mutex);
 }
+void *handle_textclients(void *arg)
+{
+  int s = (int)(intptr_t)arg;
+  char buf[TEXT_SIZE];
+  int recv_size;
+  while ((recv_size = recv(s, buf, sizeof(buf) - 1, 0)) > 0) {
+      buf[recv_size] = '\0';
+      
+      broadcast_message(buf, recv_size, s);
+  }
+}
+/*ここまで handle clients*/
 
 void *my_push_back(short* buf, int s, int n){
   int client_i = 0;
@@ -81,9 +111,7 @@ void *handle_client(void *arg)
       break;
     }
     my_push_back(buf, s, n);
-    // broadcast_message(buf, n, s);
   }
-  //printf("client finished");
   close(s);
 
 
@@ -237,6 +265,17 @@ void server_mode(int port)
     clients[num_clients].socket = s;
     pthread_create(&clients[num_clients].thread, NULL, handle_client, (void *)(intptr_t)s);
     ns[num_clients] = 0;
+    pthread_mutex_unlock(&clients_mutex);
+    /*ここからテキストのやり取りをするソケット*/
+    s = accept(ss, (struct sockaddr *)&client_addr, &len);
+    if (s == -1)
+    {
+      die("accept text socket");
+    }
+    pthread_mutex_lock(&clients_mutex);
+    textclients[num_clients].socket = s;
+    pthread_create(&textclients[num_clients].thread, NULL, handle_textclients, (void *)(intptr_t)s);
+    /*ここまでテキストのやり取りをするソケット*/
     num_clients++;
     printf("client %d has joined\n", num_clients);
     pthread_mutex_unlock(&clients_mutex);

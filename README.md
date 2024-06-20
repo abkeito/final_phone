@@ -1,11 +1,7 @@
-# 事前環境
+# 準備
 ```bash
-sudo apt install libssl-dev
-```
-
-# インストール
-```bash
-make
+make clean
+make zoom
 ```
 
 # 使い方(サーバーの立て方)
@@ -14,5 +10,10 @@ make
 ```
 # 使い方(クライアントの入り方)
 ```bash
-./client.sh (ip) (port)
+./bin/zoom.exe (ip) (port)
+
+voicechange <変えたい半音の数>
 ```
+# できること
+複数人で通話、チャットができるはず。
+（自分の声が聞こえるという仕様になっていそうで焦っていますなぜだろう。
