@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 #define MAX_CLIENTS 5
-#define BUFFER_SIZE 81920 // バッファサイズを増やす
+#define BUFFER_SIZE 8192 // バッファサイズを増やす
 #define TEXT_SIZE 256
 //#define BUFFER_SIZE 163840 // バッファサイズを増やす
 #define TEXT_PREFIX "TEXT:"
@@ -37,11 +37,23 @@ int ns[MAX_CLIENTS];
 void broadcast_message(const char *message, int len, int sender_socket)
 {
   pthread_mutex_lock(&clients_mutex);
+  //working on it
+  int sender_i;
+  char sender_char[256]; // 数字と '\0' のためのバッファ
+
+  for (int i = 0; i < num_clients; i++) {
+      if (textclients[i].socket == sender_socket) {
+          sender_i = i + 1;
+          snprintf(sender_char, sizeof(sender_char), "%d", sender_i);
+          strcat(sender_char, "->");
+          break;
+      }
+  }
   for (int i = 0; i < num_clients; i++)
   {
     if (textclients[i].socket != sender_socket)
     {
-      if (send(textclients[i].socket, message, len, 0) == -1)
+      if (send(textclients[i].socket, strcat(sender_char,message), len+3, 0) == -1)
       {
         perror("send text");
       }
@@ -56,6 +68,7 @@ void *handle_textclients(void *arg)
   int recv_size;
   while ((recv_size = recv(s, buf, sizeof(buf) - 1, 0)) > 0) {
       buf[recv_size] = '\0';
+      
       broadcast_message(buf, recv_size, s);
   }
 }
