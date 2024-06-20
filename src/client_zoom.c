@@ -16,6 +16,8 @@
 pthread_mutex_t npitch_mutex = PTHREAD_MUTEX_INITIALIZER; // npitchのロック
 int npitch;
 
+is_mute = 0;
+
 typedef struct {
     int s_audio;
     int s_text;
@@ -43,6 +45,12 @@ void *sendtext_message(void *arg)
           npitch = buf[12] - '0'; // '0' を引くことで数値に変換
           printf("voice changed -> %d\n", npitch);
           pthread_mutex_unlock(&npitch_mutex);
+      } else if (strncmp(buf, "mute", 4) == 0) {
+          is_mute = 1;
+          printf("muted\n");
+      } else if (strncmp(buf, "unmute", 6) == 0) {
+          is_mute = 0;
+          printf("unmuted\n");
       }
   }
     close(s);
@@ -101,6 +109,11 @@ void *send_message(void *arg)
     if(npitch != 0){
       //npitch = 0;
       pitchchange(n, npitch, buf);
+    }
+    if (is_mute) {
+      for (int i = 0; i < n; i++) {
+        buf[i] = 0;
+      }
     }
     /////voice change///////
     if (send(s, buf, n*sizeof(short), 0) == -1)
